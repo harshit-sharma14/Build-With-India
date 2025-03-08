@@ -42,7 +42,7 @@ function App() {
       image: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?auto=format&fit=crop&w=800&q=80'
     },
     {
-      date: 'November 9, 1989',
+      date: 'November 10, 1989',
       title: 'Berlin Wall Falls',
       description: 'A pivotal moment in world history',
       image: 'https://images.unsplash.com/photo-1597935258735-e254c1839512?auto=format&fit=crop&w=800&q=80'
