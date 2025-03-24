@@ -1,23 +1,19 @@
 import axios from 'axios';
 import { format } from 'date-fns';
 
-const WIKIPEDIA_API_URL = 'https://en.wikipedia.org/w/api.php';
+const NYT_API_KEY = 'e8jmvselA60BG3yS2LmBUIWkAUO6dLym'; // Replace with your NYT API key
+const NYT_ARCHIVE_API_URL = 'https://api.nytimes.com/svc/archive/v1';
 const ALPHA_VANTAGE_API_KEY = 'P7CR9TXKVCPMFHFZ';
 const ALPHA_VANTAGE_API_URL = 'https://www.alphavantage.co/query';
-
-export interface WikiEvent {
-  title: string;
-  extract: string;
-  timestamp: string;
-}
+const BACKEND_API_URL = 'http://localhost:5000/api/news'; // Replace with your backend URL
 
 export interface CategoryData {
   title: string;
-  extract: string;
+  description: string;
   url: string;
 }
 
-export interface WikipediaData {
+export interface NewsData {
   news: CategoryData[];
   finance: CategoryData[];
   culture: CategoryData[];
@@ -35,100 +31,71 @@ export interface StockData {
   volume: string;
 }
 
-const fetchWikipediaCategory = async (date: string, category: string): Promise<CategoryData[]> => {
-  const formattedDate = format(new Date(date), 'yyyy');
-  const searchQuery = `${category} ${formattedDate}`;
-  
+// Function to fetch news articles from NYT Archive API
+
+export const fetchNewsData = async (date: string): Promise<NewsData> => {
   try {
-    const response = await axios.get(WIKIPEDIA_API_URL, {
-      params: {
-        action: 'query',
-        format: 'json',
-        list: 'search',
-        srsearch: searchQuery,
-        srlimit: 3,
-        origin: '*'
-      }
+    const formattedDate = new Date(date);
+    const year = formattedDate.getFullYear();
+    const month = formattedDate.getMonth() + 1; // Months are 0-indexed in JavaScript
+
+    const { data } = await axios.get(BACKEND_API_URL, {
+      params: { year, month },
     });
 
-    const results = response.data.query.search;
-    
-    // Fetch detailed information for each result
-    const detailedResults = await Promise.all(
-      results.map(async (result: any) => {
-        const detailResponse = await axios.get(WIKIPEDIA_API_URL, {
-          params: {
-            action: 'query',
-            format: 'json',
-            pageids: result.pageid,
-            prop: 'extracts|info',
-            exintro: true,
-            explaintext: true,
-            inprop: 'url',
-            origin: '*'
-          }
-        });
-
-        const page = detailResponse.data.query.pages[result.pageid];
-        return {
-          title: page.title,
-          extract: page.extract,
-          url: page.fullurl
-        };
-      })
-    );
-
-    return detailedResults;
-  } catch (error) {
-    console.error(`Error fetching Wikipedia ${category} data:`, error);
-    return [];
-  }
-};
-
-export const fetchWikipediaEvents = async (date: string): Promise<WikipediaData> => {
-  try {
-    const [news, finance, culture, tech, entertainment] = await Promise.all([
-      fetchWikipediaCategory(date, 'news events'),
-      fetchWikipediaCategory(date, 'financial history'),
-      fetchWikipediaCategory(date, 'cultural history'),
-      fetchWikipediaCategory(date, 'technology history'),
-      fetchWikipediaCategory(date, 'entertainment history')
-    ]);
-
     return {
-      news,
-      finance,
-      culture,
-      tech,
-      entertainment,
-      timestamp: date
+      news: (data?.news ?? []).slice(0, 5),
+      finance: (data?.finance ?? []).slice(0, 5),
+      culture: (data?.culture ?? []).slice(0, 5),
+      tech: (data?.tech ?? []).slice(0, 5),
+      entertainment: (data?.entertainment ?? []).slice(0, 5),
+      timestamp: date,
     };
   } catch (error) {
-    console.error('Error fetching Wikipedia events:', error);
+    console.error("Error fetching news data:", error);
+
     return {
       news: [],
       finance: [],
       culture: [],
       tech: [],
       entertainment: [],
-      timestamp: date
+      timestamp: date,
     };
   }
 };
 
-export const fetchStockData = async (symbol: string, date: string) => {
+// Define NewsData below the function
+export interface NewsData {
+  news: Article[];
+  finance: Article[];
+  culture: Article[];
+  tech: Article[];
+  entertainment: Article[];
+  timestamp: string;
+}
+
+export interface Article {
+  title: string;
+  description: string;
+  url: string;
+}
+
+
+// Fetch stock data (unchanged)
+export const fetchStockData = async (symbol: string, date: string): Promise<StockData | null> => {
   try {
     const response = await axios.get(ALPHA_VANTAGE_API_URL, {
       params: {
         function: 'TIME_SERIES_DAILY',
         symbol,
         apikey: ALPHA_VANTAGE_API_KEY,
-      }
+      },
     });
 
     const timeSeriesData = response.data['Time Series (Daily)'];
     const formattedDate = format(new Date(date), 'yyyy-MM-dd');
-    
+
     if (timeSeriesData[formattedDate]) {
       return {
         date: formattedDate,
@@ -136,7 +103,7 @@ export const fetchStockData = async (symbol: string, date: string) => {
         high: timeSeriesData[formattedDate]['2. high'],
         low: timeSeriesData[formattedDate]['3. low'],
         close: timeSeriesData[formattedDate]['4. close'],
-        volume: timeSeriesData[formattedDate]['5. volume']
+        volume: timeSeriesData[formattedDate]['5. volume'],
       };
     }
     return null;

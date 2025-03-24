@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, Search, Newspaper, TrendingUp, Radio, Smartphone, Film } from 'lucide-react';
 import useSWR from 'swr';
-import { fetchWikipediaEvents, fetchStockData, WikipediaData, StockData } from './api';
+import { fetchNewsData, fetchStockData,StockData,NewsData } from './api';
 import { EventCard } from './components/EventCard';
 import { StockCard } from './components/StockCard';
 import { CategorySection } from './components/CategorySection';
-
+import GeminiWhatIf from './components/GeminiWhatIf';
+import CrimeDataComponent from './components/CrimeDataComponent';
 function App() {
   const [selectedDate, setSelectedDate] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   
-  const { data: wikiData } = useSWR<WikipediaData | null>(
-    isSearching ? ['wikipedia', selectedDate] : null,
-    () => fetchWikipediaEvents(selectedDate)
+  const { data: newsData } = useSWR<NewsData | null>(
+    isSearching ? ['news', selectedDate] : null,
+    () => fetchNewsData(selectedDate)
   );
+
 
   const { data: stockData } = useSWR<StockData | null>(
     isSearching ? ['stock', selectedDate] : null,
@@ -67,6 +69,10 @@ function App() {
             Explore history as if you were there
           </p>
         </div>
+        <div className="mt-12">
+  <GeminiWhatIf />
+</div>
+
 
         {/* Search Bar */}
         <div className="max-w-3xl mx-auto relative">
@@ -90,7 +96,7 @@ function App() {
         </div>
 
         {/* Search Results */}
-        {isSearching && wikiData && (
+        {isSearching && newsData && (
           <div className="mt-12">
             <h2 className="text-2xl font-bold mb-8">Results for {selectedDate}</h2>
             
@@ -98,7 +104,7 @@ function App() {
               {/* News Section */}
               <CategorySection
                 title="News"
-                data={wikiData.news}
+                data={newsData.news}
                 icon={<Newspaper className="text-blue-400" size={24} />}
               />
               
@@ -106,7 +112,7 @@ function App() {
               <div className="space-y-8">
                 <CategorySection
                   title="Finance"
-                  data={wikiData.finance}
+                  data={newsData.finance}
                   icon={<TrendingUp className="text-green-400" size={24} />}
                 />
                 {stockData && <StockCard stock={stockData} symbol="AAPL" />}
@@ -115,23 +121,24 @@ function App() {
               {/* Culture Section */}
               <CategorySection
                 title="Culture"
-                data={wikiData.culture}
+                data={newsData.culture}
                 icon={<Radio className="text-purple-400" size={24} />}
               />
 
               {/* Tech Section */}
               <CategorySection
                 title="Technology"
-                data={wikiData.tech}
+                data={newsData.tech}
                 icon={<Smartphone className="text-orange-400" size={24} />}
               />
 
               {/* Entertainment Section */}
               <CategorySection
                 title="Entertainment"
-                data={wikiData.entertainment}
+                data={newsData.entertainment}
                 icon={<Film className="text-red-400" size={24} />}
               />
+              <CrimeDataComponent/>
             </div>
           </div>
         )}
